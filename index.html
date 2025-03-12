@@ -14,6 +14,7 @@
             height: 600px;
             border: 1px solid #fff;
             margin: 40px auto;
+            position: relative;
         }
         #scoreboard {
             color: #fff;
@@ -35,12 +36,34 @@
             background-color: #f00;
             position: absolute;
         }
+        #game-over-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        #game-over-modal-content {
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+        }
     </style>
 </head>
 <body>
     <div id="game-container">
         <div id="scoreboard">Score: 0</div>
-        <div id="game-over" style="display: none;">Game Over! <button id="restart-button">Restart</button></div>
+    </div>
+    <div id="game-over-modal">
+        <div id="game-over-modal-content">
+            <h2>Game Over!</h2>
+            <button id="restart-button" class="btn btn-primary">Restart</button>
+        </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -121,13 +144,13 @@
 
         function gameLoop() {
             if (gameOver) {
-                document.getElementById('game-over').style.display = 'block';
+                document.getElementById('game-over-modal').style.display = 'block';
                 clearInterval(gameInterval);
             } else {
                 updateSnake();
                 checkCollision();
                 checkFood();
-                document.getElementById('game-container').innerHTML = '';
+                document.getElementById('game-container').innerHTML = '<div id="scoreboard">Score: ' + score + '</div>';
                 drawSnake();
                 drawFood();
             }
@@ -141,7 +164,7 @@
             speed = 100;
             gameOver = false;
             gameInterval = setInterval(gameLoop, speed);
-            document.getElementById('game-over').style.display = 'none';
+            document.getElementById('game-over-modal').style.display = 'none';
             document.getElementById('scoreboard').innerText = `Score: ${score}`;
             drawSnake();
             drawFood();
