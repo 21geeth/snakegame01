@@ -3,175 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake Game</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+    <title>Interactive Snake Game</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
     <style>
         body {
-            background-color: #2c3e50;
-        }
-        #game-container {
-            width: 800px;
-            height: 600px;
-            border: 1px solid #fff;
-            margin: 40px auto;
-            position: relative;
-        }
-        #scoreboard {
-            color: #fff;
-            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #222;
+            color: white;
+            font-family: Arial, sans-serif;
             text-align: center;
-            margin-bottom: 20px;
+            margin: 0;
         }
-        .snake-skin {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background-color: #4CAF50;
-            position: absolute;
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .food {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background-color: #f00;
-            position: absolute;
+        canvas {
+            background-color: black;
+            border: 2px solid white;
         }
-        #game-over-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            left: 0;
+        button {
+            margin-top: 10px;
+            padding: 8px 16px;
+            font-size: 16px;
+            border: none;
+            background-color: limegreen;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: darkgreen;
+        }
+        .modal {
             background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
         }
-        #game-over-modal-content {
-            background-color: #fff;
-            margin: 15% auto;
+        .modal-content {
+            background-color: #222;
+            color: white;
             padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
+            border: none;
+            border-radius: 10px;
         }
     </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="scoreboard">Score: 0</div>
+    <div class="game-container">
+        <h1>Interactive Snake Game</h1>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <p>Score: <span id="score">0</span></p>
+        <button id="restartBtn" data-toggle="modal" data-target="#restartModal">Restart</button>
     </div>
-    <div id="game-over-modal">
-        <div id="game-over-modal-content">
-            <h2>Game Over!</h2>
-            <button id="restart-button" class="btn btn-primary">Restart</button>
+    <div class="modal fade" id="restartModal" tabindex="-1" role="dialog" aria-labelledby="restartModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <h5 class="modal-title" id="restartModalLabel">Game Over!</h5>
+                <p>YOUR SCORE: <span id="modalScore">0</span></p>
+                <button type="button" class="btn btn-primary" id="playAgainBtn">Play Again</button>
+            </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
     <script>
-        let snake = [];
-        let direction = 'right';
-        let food = {};
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const box = 20;
+        let snake = [{ x: 200, y: 200 }, { x: 220, y: 200 }, { x: 240, y: 200 }];
+        let direction = "LEFT";
+        let food = { x: Math.floor(Math.random() * (canvas.width / box)) * box, y: Math.floor(Math.random() * (canvas.height / box)) * box };
         let score = 0;
-        let speed = 100;
         let gameInterval;
-        let gameOver = false;
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowUp' && direction !== 'down') {
-                direction = 'up';
-            } else if (e.key === 'ArrowDown' && direction !== 'up') {
-                direction = 'down';
-            } else if (e.key === 'ArrowLeft' && direction !== 'right') {
-                direction = 'left';
-            } else if (e.key === 'ArrowRight' && direction !== 'left') {
-                direction = 'right';
-            }
-        });
+        document.addEventListener("keydown", changeDirection);
+        document.getElementById("restartBtn").addEventListener("click", restartGame);
+        document.getElementById("playAgainBtn").addEventListener("click", restartGame);
 
-        function drawSnake() {
-            for (let i = 0; i < snake.length; i++) {
-                const snakeSkin = document.createElement('div');
-                snakeSkin.classList.add('snake-skin');
-                snakeSkin.style.top = `${snake[i].y}px`;
-                snakeSkin.style.left = `${snake[i].x}px`;
-                document.getElementById('game-container').appendChild(snakeSkin);
-            }
+        function changeDirection(event) {
+            const key = event.keyCode;
+            if (key === 37 && direction !== "RIGHT") direction = "LEFT";
+            else if (key === 38 && direction !== "DOWN") direction = "UP";
+            else if (key === 39 && direction !== "LEFT") direction = "RIGHT";
+            else if (key === 40 && direction !== "UP") direction = "DOWN";
         }
 
-        function drawFood() {
-            const foodDiv = document.createElement('div');
-            foodDiv.classList.add('food');
-            foodDiv.style.top = `${food.y}px`;
-            foodDiv.style.left = `${food.x}px`;
-            document.getElementById('game-container').appendChild(foodDiv);
-        }
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        function updateSnake() {
-            for (let i = snake.length - 1; i > 0; i--) {
-                snake[i] = { ...snake[i - 1] };
-            }
-            if (direction === 'up') {
-                snake[0].y -= 20;
-            } else if (direction === 'down') {
-                snake[0].y += 20;
-            } else if (direction === 'left') {
-                snake[0].x -= 20;
-            } else if (direction === 'right') {
-                snake[0].x += 20;
-            }
-        }
+            // Draw food
+            ctx.fillStyle = "red";
+            ctx.fillRect(food.x, food.y, box, box);
 
-        function checkCollision() {
-            if (snake[0].x < 0 || snake[0].x >= 800 || snake[0].y < 0 || snake[0].y >= 600) {
-                gameOver = true;
-            }
-            for (let i = 1; i < snake.length; i++) {
-                if (snake[0].x === snake[i].x && snake[0].y === snake[i].y) {
-                    gameOver = true;
-                }
-            }
-        }
+            // Draw snake
+            ctx.fillStyle = "limegreen";
+            snake.forEach((segment, index) => {
+                ctx.fillRect(segment.x, segment.y, box, box);
+                if (index === 0) ctx.fillStyle = "darkgreen"; // Head color
+            });
 
-        function checkFood() {
-            if (snake[0].x === food.x && snake[0].y === food.y) {
-                score++;
-                document.getElementById('scoreboard').innerText = `Score: ${score}`;
-                food = { x: Math.floor(Math.random() * 40) * 20, y: Math.floor(Math.random() * 30) * 20 };
-                drawFood();
-                snake.push({ x: snake[snake.length - 1].x, y: snake[snake.length - 1].y });
-                speed -= 5;
-            }
-        }
+            // Move the snake
+            let head = { ...snake[0] };
+            if (direction === "LEFT") head.x -= box;
+            if (direction === "RIGHT") head.x += box;
+            if (direction === "UP") head.y -= box;
+            if (direction === "DOWN") head.y += box;
 
-        function gameLoop() {
-            if (gameOver) {
-                document.getElementById('game-over-modal').style.display = 'block';
+            // Check collisions
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height || collision(head, snake)) {
                 clearInterval(gameInterval);
-            } else {
-                updateSnake();
-                checkCollision();
-                checkFood();
-                document.getElementById('game-container').innerHTML = '<div id="scoreboard">Score: ' + score + '</div>';
-                drawSnake();
-                drawFood();
+                document.getElementById("modalScore").innerText = score;
+                $("#restartModal").modal("show");
+                return;
             }
+
+            // Check if snake eats food
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                document.getElementById("score").innerText = score;
+                food = { x: Math.floor(Math.random() * (canvas.width / box)) * box, y: Math.floor(Math.random() * (canvas.height / box)) * box };
+            } else {
+                snake.pop(); // Remove tail if no food eaten
+            }
+
+            snake.unshift(head);
         }
 
-        function startGame() {
-            snake = [{ x: 100, y: 100 }, { x: 80, y: 100 }, { x: 60, y: 100 }];
-            direction = 'right';
-            food = { x: Math.floor(Math.random() * 40) * 20, y: Math.floor(Math.random() * 30) * 20 };
+        function collision(head, body) {
+            return body.some((segment, index) => index !== 0 && segment.x === head.x && segment.y === head.y);
+        }
+
+        function restartGame() {
+            snake = [{ x: 200, y: 200 }, { x: 220, y: 200 }, { x: 240, y: 200 }];
+            direction = "LEFT";
+            food = { x: Math.floor(Math.random() * (canvas.width / box)) * box, y: Math.floor(Math.random() * (canvas.height / box)) * box };
             score = 0;
-            speed = 100;
-            gameOver = false;
-            gameInterval = setInterval(gameLoop, speed);
-            document.getElementById('game-over-modal').style.display = 'none';
-            document.getElementById('scoreboard').innerText = `Score: ${score}`;
-            drawSnake();
-            drawFood();
+            document.getElementById("score").innerText = score;
+            clearInterval(gameInterval);
+            gameInterval = setInterval(draw, 100);
+            $("#restartModal").modal("hide");
         }
 
-        document.getElementById('restart-button').addEventListener('click', startGame);
-        startGame();
+        // Start the game
+        gameInterval = setInterval(draw, 100);
     </script>
 </body>
 </html>
